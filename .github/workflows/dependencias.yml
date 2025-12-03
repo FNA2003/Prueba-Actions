@@ -7,7 +7,7 @@ on:
 
 
 jobs:
-  show-sql:
+  dependency-check:
     runs-on: ubuntu-latest
     steps:
       # Clonar repositorio al runner de GitHub
@@ -26,16 +26,15 @@ jobs:
             commit=$(git rev-parse $branch)
             files=$(git ls-tree -r --name-only $commit | grep '\.sql$' || true)
             for f in $files; do
-              content=$(git show $commit:$f)
-              SQL_CONTENT="$SQL_CONTENT\n$content"
+              SQL_CONTENT="$SQL_CONTENT\n$(git show $commit:$f)"
             done
           done
-          # Exportar variable para siguientes steps
+          # Exportar variable para el otro step
           echo "SQL_CONTENT<<EOF" >> $GITHUB_ENV
           echo -e "$SQL_CONTENT" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
       - name: Ejecutar script de detección de dependencia del repositorio
         run: |
-          # Temporal
+          # Temporal: muestra solo el contenido de los .sql
           echo "$SQL_CONTENT"
