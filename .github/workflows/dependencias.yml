@@ -1,0 +1,25 @@
+name: Listar SQL del último commit
+
+on:
+  push:
+    branches:
+      - '**'
+jobs:
+  list-sql:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0   # trae todo el historial y ramas
+
+      - name: Listar archivos .sql del último commit de cada rama
+        run: |
+          echo "Archivos .sql en el último commit de cada rama:"
+          git fetch --all
+          for branch in $(git branch -r | grep -v '\->'); do
+            echo "Branch: $branch"
+            # Mostrar los .sql del último commit de esa rama
+            git ls-tree -r $(git rev-parse $branch) --name-only | grep '\.sql$' || echo "No hay .sql en $branch"
+          done
+
