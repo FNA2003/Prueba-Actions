@@ -1,4 +1,4 @@
-name: Mostrar contenido de SQLs
+name: Detectar dependencias .sql con GitHub Actions 
 
 on:
   push:
@@ -8,26 +8,31 @@ jobs:
   show-sql:
     runs-on: ubuntu-latest
     steps:
+      # Clonar repositorio al runner de GitHub
       - name: Checkout del código
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0   # trae todas las ramas y commits
+          fetch-depth: 0   # Todas las ramas y commits
 
-      - name: Mostrar contenido de .sql en último commit de cada rama
+      # Step para obtener el contenido de cada .sql de cada rama
+      - name: Guardar contenido de .sql en variable de entorno
         run: |
-          echo "=== Contenido de archivos .sql en cada rama ==="
           git fetch --all
+          # Variable de entorne para que use el próximo step para la detección de dependencias
+          SQL_CONTENT=""
           for branch in $(git branch -r | grep -v '\->'); do
-            echo ">>> Branch: $branch"
             commit=$(git rev-parse $branch)
-            # Listar los .sql del último commit
             files=$(git ls-tree -r --name-only $commit | grep '\.sql$' || true)
-            if [ -z "$files" ]; then
-              echo "No hay archivos .sql en $branch"
-            else
-              for f in $files; do
-                echo "--- $f ---"
-                git show $commit:$f || echo "Error mostrando $f"
-              done
-            fi
+            for f in $files; do
+              content=$(git show $commit:$f)
+              SQL_CONTENT="$SQL_CONTENT\n--- $branch/$f ---\n$content"
+            done
           done
+          # Exportar variable para siguientes steps
+          echo "SQL_CONTENT<<EOF" >> $GITHUB_ENV
+          echo -e "$SQL_CONTENT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Ejecutar script Python del repo
+        run: |
+          echo "$SQL_CONTENT"
